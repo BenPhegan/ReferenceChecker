@@ -92,7 +92,7 @@ namespace ReferenceChecker
 
             if (!string.IsNullOrEmpty(output))
             {
-                graph.ToDirectedGraphML(graph.GetVertexIdentity(),graph.GetEdgeIdentity()).WriteXml(output);
+                graph.ToDirectedGraphML(graph.GetVertexIdentity(),graph.GetEdgeIdentity(),(n,d) => d.Label = n.AssemblyName.Name + " " + n.AssemblyName.Version,(e,l) => l.Label = "").WriteXml(output);
             }
             var exitCode = 0;
             if (roots.Any())
