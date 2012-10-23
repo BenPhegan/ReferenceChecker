@@ -65,15 +65,18 @@ namespace ReferenceChecker
                             string assemblyPath;
                             exists = GacResolver.AssemblyExists(reference.FullName,out assemblyPath);
                         }
+                        var assemblyName = new AssemblyName(assembly.FullName);
                         edges.Add(new EquatableEdge<AssemblyVertex>(
                                       new AssemblyVertex
                                           {
-                                              AssemblyName = new AssemblyName(assembly.FullName),
-                                              Exists = true
+                                              AssemblyName = new AssemblyName(assemblyName.FullName),
+                                              Exists = true,
+                                              Excluded = exclusions.Any(e => e.IsMatch(assemblyName.Name.ToLowerInvariant()))
                                           }, new AssemblyVertex
                                               {
                                                   AssemblyName = new AssemblyName(reference.FullName),
-                                                  Exists = exists
+                                                  Exists = exists,
+                                                  Excluded = exclusions.Any(e => e.IsMatch(reference.Name.ToLowerInvariant()))
                                               }));
                     }
                 });
@@ -88,17 +91,10 @@ namespace ReferenceChecker
             var roots = sources.Where(s => !targets.Contains(s));
             var missing = graph.Vertices.Where(v => !v.Exists);
             var matchedExluded = missing.Where(m => exclusions.Any(e => e.IsMatch(m.AssemblyName.Name.ToLowerInvariant())));
+            matchedExluded.ToList().ForEach(m => m.Excluded = true);
             var failures = missing.Where(m => !matchedExluded.Any(e => e.Equals(m)));
 
-            if (!string.IsNullOrEmpty(output))
-            {
-                graph.ToDirectedGraphML(graph.GetVertexIdentity(),graph.GetEdgeIdentity(),(n,d) =>
-                    {
-                        d.Label = n.AssemblyName.Name + " " + n.AssemblyName.Version;
-                        if (!n.Exists)
-                            d.Background = "Red";
-                    },(e,l) => l.Label = "").WriteXml(output);
-            }
+
             var exitCode = 0;
             if (roots.Any())
             {
@@ -116,6 +112,19 @@ namespace ReferenceChecker
                 failures.ToList().ForEach(m => Console.WriteLine("\t" + m.AssemblyName));
                 exitCode = failures.Count();
             }
+
+            if (!string.IsNullOrEmpty(output))
+            {
+                graph.ToDirectedGraphML(graph.GetVertexIdentity(), graph.GetEdgeIdentity(), (n, d) =>
+                {
+                    d.Label = n.AssemblyName.Name + " " + n.AssemblyName.Version;
+                    if (!n.Exists)
+                        d.Background = "Red";
+                    if (!n.Exists && n.Excluded)
+                        d.Background = "Yellow";
+                }, (e, l) => l.Label = "").WriteXml(output);
+            }
+
             Environment.Exit(exitCode);
         }
 
@@ -138,7 +147,7 @@ namespace ReferenceChecker
     {
         protected bool Equals(AssemblyVertex other)
         {
-            return Equals(AssemblyName.FullName, other.AssemblyName.FullName) && Exists.Equals(other.Exists);
+            return Equals(AssemblyName.FullName, other.AssemblyName.FullName) && Exists.Equals(other.Exists) && Excluded.Equals(other.Excluded);
         }
 
         public override int GetHashCode()
@@ -149,11 +158,12 @@ namespace ReferenceChecker
                 hashCode = hashCode ^ AssemblyName.FullName.GetHashCode();
             }
 
-            return hashCode ^ Exists.GetHashCode();
+            return hashCode ^ Exists.GetHashCode() ^ Excluded.GetHashCode();
         }
 
         public AssemblyName AssemblyName;
         public Boolean Exists;
+        public Boolean Excluded;
 
         public override bool Equals(object obj)
         {
