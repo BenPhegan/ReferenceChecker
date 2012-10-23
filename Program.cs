@@ -92,23 +92,28 @@ namespace ReferenceChecker
 
             if (!string.IsNullOrEmpty(output))
             {
-                graph.ToDirectedGraphML(graph.GetVertexIdentity(),graph.GetEdgeIdentity(),(n,d) => d.Label = n.AssemblyName.Name + " " + n.AssemblyName.Version,(e,l) => l.Label = "").WriteXml(output);
+                graph.ToDirectedGraphML(graph.GetVertexIdentity(),graph.GetEdgeIdentity(),(n,d) =>
+                    {
+                        d.Label = n.AssemblyName.Name + " " + n.AssemblyName.Version;
+                        if (!n.Exists)
+                            d.Background = "Red";
+                    },(e,l) => l.Label = "").WriteXml(output);
             }
             var exitCode = 0;
             if (roots.Any())
             {
                 Console.WriteLine("Roots....");
-                roots.ToList().ForEach(r => Console.WriteLine(r.AssemblyName));
+                roots.ToList().ForEach(r => Console.WriteLine("\t"+r.AssemblyName));
             }
             if (matchedExluded.Any())
             {
                 Console.WriteLine("Missing but excluded...");
-                matchedExluded.ToList().ForEach(m => Console.WriteLine(m.AssemblyName));
+                matchedExluded.ToList().ForEach(m => Console.WriteLine("\t" + m.AssemblyName));
             }
             if (failures.Any())
             {
                 Console.WriteLine("Missing...");
-                failures.ToList().ForEach(m => Console.WriteLine(m.AssemblyName));
+                failures.ToList().ForEach(m => Console.WriteLine("\t" + m.AssemblyName));
                 exitCode = failures.Count();
             }
             Environment.Exit(exitCode);
