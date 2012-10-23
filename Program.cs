@@ -27,11 +27,11 @@ namespace ReferenceChecker
             string exceptions = null;
             var options = new OptionSet()
                 {
-                    {"d|directory=", v => directory = v},
-                    {"v|verbose", v => verbose = v != null},
-                    {"h|?|help", v => help = v != null},
-                    {"o|output=", v => output = v},
-                    {"e|exceptions=", v => exceptions = v}
+                    {"d|directory=","The directory to check runtime dependencies for.", v => directory = v},
+                    {"v|verbose", "Verbose logging",v => verbose = v != null},
+                    {"h|?|help", "Show help.", v => help = v != null},
+                    {"o|output=","File to output DGML graph of references to.", v => output = v},
+                    {"e|exceptions=", "A semi-colon delimited list of exclusiosn (accepts wildcards)",v => exceptions = v}
                 };
 
             var extra = options.Parse(args);
