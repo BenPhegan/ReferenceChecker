@@ -20,7 +20,7 @@ namespace ReferenceChecker
         private static void Main(string[] args)
         {
             var directory = string.Empty;
-            bool verbose;
+            var verbose = false;
             bool help;
             var output = string.Empty;
 
@@ -48,48 +48,68 @@ namespace ReferenceChecker
 
             var exclusions = GetExcludedWildcards(exceptions);
             var files = new ConcurrentBag<string>(Directory.GetFiles(directory, "*.dll").Concat(Directory.GetFiles(directory, "*.exe")));
-
+            Console.WriteLine("Processing {0} files.", files.Count);
             var edges = new ConcurrentBag<EquatableEdge<AssemblyVertex>>();
+            var current = 0;
+            var total = files.Count;
             Parallel.ForEach(files, file =>
                 {
-                    var assembly = AssemblyDefinition.ReadAssembly(file);
-                    foreach (var reference in assembly.MainModule.AssemblyReferences)
+                    Console.Write("\rProcessing file: {0} of {1}",++current, total);
+                    AssemblyDefinition assembly = null;
+                    try
                     {
-                        var exists = files.Any(f =>
-                            {
-                                var fileInfo = new FileInfo(f);
-                                return reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""));
-                            });
-                        if (!exists)
-                        {
-                            string assemblyPath;
-                            exists = GacResolver.AssemblyExists(reference.FullName,out assemblyPath);
-                        }
-                        var assemblyName = new AssemblyName(assembly.FullName);
-                        edges.Add(new EquatableEdge<AssemblyVertex>(
-                                      new AssemblyVertex
-                                          {
-                                              AssemblyName = new AssemblyName(assemblyName.FullName),
-                                              Exists = true,
-                                              Excluded = exclusions.Any(e => e.IsMatch(assemblyName.Name.ToLowerInvariant()))
-                                          }, new AssemblyVertex
-                                              {
-                                                  AssemblyName = new AssemblyName(reference.FullName),
-                                                  Exists = exists,
-                                                  Excluded = exclusions.Any(e => e.IsMatch(reference.Name.ToLowerInvariant()))
-                                              }));
+                        assembly = AssemblyDefinition.ReadAssembly(file);
                     }
+                    catch(Exception e)
+                    {
+                        if (verbose)
+                            Console.WriteLine("Skipping file as it does not appear to be a .Net assembly: {0}", file);
+                        return;
+                    }
+                    foreach (var reference in assembly.MainModule.AssemblyReferences)
+                        {
+                            var exists = files.Any(f =>
+                                {
+                                    var fileInfo = new FileInfo(f);
+                                    return reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""));
+                                });
+                            if (!exists)
+                            {
+                                string assemblyPath;
+                                exists = GacResolver.AssemblyExists(reference.FullName, out assemblyPath);
+                            }
+                            var assemblyName = new AssemblyName(assembly.FullName);
+                            edges.Add(new EquatableEdge<AssemblyVertex>(
+                                          new AssemblyVertex
+                                              {
+                                                  AssemblyName = new AssemblyName(assemblyName.FullName),
+                                                  Exists = true,
+                                                  Excluded =
+                                                      exclusions.Any(
+                                                          e => e.IsMatch(assemblyName.Name.ToLowerInvariant()))
+                                              }, new AssemblyVertex
+                                                  {
+                                                      AssemblyName = new AssemblyName(reference.FullName),
+                                                      Exists = exists,
+                                                      Excluded =
+                                                          exclusions.Any(
+                                                              e => e.IsMatch(reference.Name.ToLowerInvariant()))
+                                                  }));
+                        }
                 });
 
+            Console.WriteLine();
+            Console.WriteLine("Creating Graph...");
             var graph = new AdjacencyGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>>();
             var allVertices = edges.Select(e => e.Source).Concat(edges.Select(e => e.Target));
             var distinctVertices = allVertices.DistinctBy(v => v.AssemblyName.FullName);
             graph.AddVertexRange(distinctVertices);
             graph.AddEdgeRange(edges);
-            var sources = graph.Edges.Select(e => e.Source).Distinct();
-            var targets = graph.Edges.Select(e => e.Target).Distinct();
+
+            var sources = graph.Edges.Select(e => e.Source).Distinct().ToList();
+            var targets = graph.Edges.Select(e => e.Target).Distinct().ToList();
             var roots = sources.Where(s => !targets.Contains(s));
-            var missing = graph.Vertices.Where(v => !v.Exists);
+            var missing = graph.Vertices.Where(v => !v.Exists).ToList();
             var matchedExluded = missing.Where(m => exclusions.Any(e => e.IsMatch(m.AssemblyName.Name.ToLowerInvariant())));
             matchedExluded.ToList().ForEach(m => m.Excluded = true);
             var failures = missing.Where(m => !matchedExluded.Any(e => e.Equals(m)));
@@ -98,16 +118,19 @@ namespace ReferenceChecker
             var exitCode = 0;
             if (roots.Any())
             {
+                Console.WriteLine();
                 Console.WriteLine("Roots....");
                 roots.ToList().ForEach(r => Console.WriteLine("\t"+r.AssemblyName));
             }
             if (matchedExluded.Any())
             {
+                Console.WriteLine();
                 Console.WriteLine("Missing but excluded...");
                 matchedExluded.ToList().ForEach(m => Console.WriteLine("\t" + m.AssemblyName));
             }
             if (failures.Any())
             {
+                Console.WriteLine();
                 Console.WriteLine("Missing...");
                 failures.ToList().ForEach(m => Console.WriteLine("\t" + m.AssemblyName));
                 exitCode = failures.Count();
