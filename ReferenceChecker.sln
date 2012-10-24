@@ -3,16 +3,38 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReferenceChecker", "ReferenceChecker.csproj", "{1BC33F18-697B-4388-9448-175A6A07F710}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReferenceChecker.Tests", "..\ReferenceChecker.Tests\ReferenceChecker.Tests.csproj", "{30BC71A8-482D-421E-BD66-87E909BB6015}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
 		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1BC33F18-697B-4388-9448-175A6A07F710}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{1BC33F18-697B-4388-9448-175A6A07F710}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{1BC33F18-697B-4388-9448-175A6A07F710}.Debug|Mixed Platforms.Build.0 = Debug|x86
 		{1BC33F18-697B-4388-9448-175A6A07F710}.Debug|x86.ActiveCfg = Debug|x86
 		{1BC33F18-697B-4388-9448-175A6A07F710}.Debug|x86.Build.0 = Debug|x86
+		{1BC33F18-697B-4388-9448-175A6A07F710}.Release|Any CPU.ActiveCfg = Release|x86
+		{1BC33F18-697B-4388-9448-175A6A07F710}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{1BC33F18-697B-4388-9448-175A6A07F710}.Release|Mixed Platforms.Build.0 = Release|x86
 		{1BC33F18-697B-4388-9448-175A6A07F710}.Release|x86.ActiveCfg = Release|x86
 		{1BC33F18-697B-4388-9448-175A6A07F710}.Release|x86.Build.0 = Release|x86
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{30BC71A8-482D-421E-BD66-87E909BB6015}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

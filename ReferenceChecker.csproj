@@ -60,6 +60,9 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Abstractions">
+      <HintPath>packages\System.IO.Abstractions.1.4.0.35\lib\net35\System.IO.Abstractions.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -67,7 +70,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GacResolver.cs" />
+    <Compile Include="AssemblyReferenceGrapher.cs" />
+    <Compile Include="AssemblyVertex.cs" />
+    <Compile Include="ExtensionMethods\EnumerableExtensions.cs" />
+    <Compile Include="Gac\GacResolver.cs" />
+    <Compile Include="Gac\GacWrapper.cs" />
     <Compile Include="Mono.Options\Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -81,7 +88,7 @@
     <PostBuildEvent>if not exist $(TargetDir)Merged mkdir $(TargetDir)Merged
  
 
-$(SolutionDir)tools\ilmerge\ilmerge.exe /v4 /t:exe /out:$(TargetDir)Merged\$(TargetFileName) $(TargetPath) $(TargetDir)QuickGraph.dll $(TargetDir)QuickGraph.Serialization.dll $(TargetDir)Mono.Cecil.dll</PostBuildEvent>
+$(SolutionDir)tools\ilmerge\ilmerge.exe /v4 /t:exe /out:$(TargetDir)Merged\$(TargetFileName) $(TargetPath) $(TargetDir)QuickGraph.dll $(TargetDir)QuickGraph.Serialization.dll $(TargetDir)Mono.Cecil.dll $(TargetDir)System.IO.Abstractions.dll</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

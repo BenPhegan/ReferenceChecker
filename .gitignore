@@ -1,3 +1,4 @@
 _ReSharper.ReferenceChecker
 bin
 obj
+*.ncrunchproject
