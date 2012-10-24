@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReferenceChecker", "ReferenceChecker.csproj", "{1BC33F18-697B-4388-9448-175A6A07F710}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReferenceChecker", "ReferenceChecker\ReferenceChecker.csproj", "{1BC33F18-697B-4388-9448-175A6A07F710}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReferenceChecker.Tests", "..\ReferenceChecker.Tests\ReferenceChecker.Tests.csproj", "{30BC71A8-482D-421E-BD66-87E909BB6015}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReferenceChecker.Tests", "ReferenceChecker.Tests\ReferenceChecker.Tests.csproj", "{30BC71A8-482D-421E-BD66-87E909BB6015}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

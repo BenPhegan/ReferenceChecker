@@ -2,3 +2,6 @@ _ReSharper.ReferenceChecker
 bin
 obj
 *.ncrunchproject
+Build.Debug
+Test.Debug
+_NCrunch_ReferenceChecker
