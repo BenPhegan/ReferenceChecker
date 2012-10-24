@@ -18,21 +18,37 @@ namespace ReferenceChecker.Tests
         [Test]
         public void FirstTest()
         {
-            var assembly = AssemblyDefinition.CreateAssembly(new AssemblyNameDefinition("Test", new Version("1.0")), "Test", ModuleKind.Dll);
-            assembly.MainModule.AssemblyReferences.Add(new AssemblyNameReference("Blah", new Version("1.0")));
-            var stream = new MemoryStream();
-            assembly.Write(stream);
             var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
                 {
-                    {@"c:\test.dll", new MockFileData(stream.ToArray())}
+                    {@"c:\test.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string>{{"Blah","1.0"},{"System","4.0.0.0"}}))}
                 });
 
             var gacResolver = Substitute.For<IGacResolver>();
             string output;
             gacResolver.AssemblyExists(Arg.Any<String>(),out output).Returns(true);
             var grapher = new AssemblyReferenceGrapher(fileSystem, gacResolver);
-            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new ConcurrentBag<string> {@"c:\test.dll"}, false);
-            Assert.AreEqual(2,graph.Vertices.Count());
+
+            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
+            Assert.AreEqual(3,graph.Vertices.Count());
+        }
+
+        private static byte[] CreateAssembly(string name = "Test", string moduleName = "Test", string version = "1.0", Dictionary<string, string> dependencies = null)
+        {
+            var assembly = AssemblyDefinition.CreateAssembly(new AssemblyNameDefinition(name, new Version(version)), moduleName, ModuleKind.Dll);
+            if (dependencies != null)
+            {
+                foreach (var dependency in dependencies)
+                {
+                    assembly.MainModule.AssemblyReferences.Add(new AssemblyNameReference(dependency.Key, new Version(dependency.Value)));
+                }
+            }
+            byte[] assemblyByteArray;
+            using (var stream = new MemoryStream())
+            {
+                assembly.Write(stream);
+                assemblyByteArray = stream.ToArray();
+            }
+            return assemblyByteArray;
         }
     }
 }
