@@ -1,19 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.GACManagedAccess;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Mono.Cecil;
 using Mono.Options;
-using QuickGraph;
-using QuickGraph.Algorithms;
-using QuickGraph.Serialization;
-using ReferenceChecker.ExtensionMethods;
 using ReferenceChecker.Gac;
 
 

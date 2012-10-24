@@ -11,7 +11,6 @@ using Mono.Cecil;
 using QuickGraph;
 using QuickGraph.Algorithms;
 using QuickGraph.Serialization;
-using ReferenceChecker.ExtensionMethods;
 using ReferenceChecker.Gac;
 
 namespace ReferenceChecker
@@ -66,7 +65,7 @@ namespace ReferenceChecker
             if (verbose) Console.WriteLine("Creating Graph...");
             var graph = new BidirectionalGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>>();
             var allVertices = edges.Select(e => e.Source).Concat(edges.Select(e => e.Target));
-            var distinctVertices = allVertices.DistinctBy(v => v.AssemblyName.FullName);
+            var distinctVertices = allVertices.Distinct();
             graph.AddVertexRange(distinctVertices);
             graph.AddEdgeRange(edges);
             return graph;

@@ -72,7 +72,6 @@
   <ItemGroup>
     <Compile Include="AssemblyReferenceGrapher.cs" />
     <Compile Include="AssemblyVertex.cs" />
-    <Compile Include="ExtensionMethods\EnumerableExtensions.cs" />
     <Compile Include="Gac\GacResolver.cs" />
     <Compile Include="Gac\GacWrapper.cs" />
     <Compile Include="Mono.Options\Options.cs" />
