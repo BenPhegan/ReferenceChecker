@@ -10,6 +10,7 @@ namespace ReferenceChecker.Gac
     public interface IGacResolver
     {
         bool AssemblyExists(string assemblyname, out string response);
+        bool AssemblyExists(string assemblyname);
     }
 
     public class GacResolver : IGacResolver
@@ -26,6 +27,12 @@ namespace ReferenceChecker.Gac
                 response = e.Message;
                 return false;
             }
+        }
+
+        public bool AssemblyExists(string assemblyname)
+        {
+            string output;
+            return AssemblyExists(assemblyname, out output);
         }
 
         private static String QueryAssemblyInfo(string assemblyName)

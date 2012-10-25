@@ -53,8 +53,7 @@ namespace ReferenceChecker
                             });
                         if (!exists)
                         {
-                            string assemblyPath;
-                            exists = _gacResolver.AssemblyExists(reference.FullName, out assemblyPath);
+                            exists = _gacResolver.AssemblyExists(reference.FullName);
                         }
                         var assemblyName = new AssemblyName(assembly.FullName);
                         edges.Add(CreateNewEdge(reference, exists, assemblyName, exclusions));

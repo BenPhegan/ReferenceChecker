@@ -16,7 +16,7 @@ namespace ReferenceChecker.Tests
     public class AssemblyReferenceGrapherTests
     {
         [Test]
-        public void FirstTest()
+        public void NodesCreatedForAssemblyFilesAndManifestDependencies()
         {
             var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
                 {
@@ -30,6 +30,60 @@ namespace ReferenceChecker.Tests
 
             var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
             Assert.AreEqual(3,graph.Vertices.Count());
+        }
+
+        [Test]
+        public void IgnoreFileNameCaseWhenMatchingManifestDependencies()
+        {
+            var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+                {
+                    {@"c:\test.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"Blah", "1.0"}, {"System", "4.0.0.0"}}))},
+                    {@"c:\blah.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"System", "4.0.0.0"}}))}
+                });
+
+            var gacResolver = Substitute.For<IGacResolver>();
+            string output;
+            gacResolver.AssemblyExists(Arg.Any<String>(), out output).Returns(true);
+            var grapher = new AssemblyReferenceGrapher(fileSystem, gacResolver);
+
+            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
+            Assert.AreEqual(3, graph.Vertices.Count());
+        }
+
+        [Test]
+        public void DIfferentManifestVersionsAreDifferentNodes()
+        {
+            var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+                {
+                    {@"c:\test.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"Blah", "1.0"}, {"System", "4.0.0.0"}}))},
+                    {@"c:\blah.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"System", "2.0.0.0"}}))}
+                });
+
+            var gacResolver = Substitute.For<IGacResolver>();
+            string output;
+            gacResolver.AssemblyExists(Arg.Any<String>(), out output).Returns(true);
+            var grapher = new AssemblyReferenceGrapher(fileSystem, gacResolver);
+
+            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
+            Assert.AreEqual(4, graph.Vertices.Count());
+        }
+
+        [Test]
+        public void MissingFileResultsInNodeWithExistEqualsFalse()
+        {
+            var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+                {
+                    {@"c:\test.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"Blah", "1.0"}, {"System", "4.0.0.0"}}))},
+                });
+
+            var gacResolver = Substitute.For<IGacResolver>();
+            gacResolver.AssemblyExists("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null").Returns(true);
+            var grapher = new AssemblyReferenceGrapher(fileSystem, gacResolver);
+
+            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
+            Assert.AreEqual(3, graph.Vertices.Count());
+            Assert.AreEqual(false, graph.Vertices.FirstOrDefault(v => v.AssemblyName.Name.Equals("Blah", StringComparison.OrdinalIgnoreCase)).Exists);
+            Assert.AreEqual(1, graph.Vertices.Count(v => v.Exists == false));
         }
 
         private static byte[] CreateAssembly(string name = "Test", string moduleName = "Test", string version = "1.0", Dictionary<string, string> dependencies = null)
