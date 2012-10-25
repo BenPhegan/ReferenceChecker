@@ -49,7 +49,7 @@ namespace ReferenceChecker
                         var exists = files.Any(f =>
                             {
                                 var fileInfo = new FileInfo(f);
-                                return reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""));
+                                return reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""), StringComparison.OrdinalIgnoreCase);
                             });
                         if (!exists)
                         {
