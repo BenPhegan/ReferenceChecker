@@ -25,7 +25,7 @@ namespace ReferenceChecker
             _fileSystem = fileSystem;
             _gacResolver = gacResolver;
         }
-        public BidirectionalGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>> GenerateAssemblyReferenceGraph(IEnumerable<Regex> exclusions, ConcurrentBag<string> files, bool verbose)
+        public BidirectionalGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>> GenerateAssemblyReferenceGraph(IEnumerable<Regex> exclusions, IEnumerable<Regex> ignoring, ConcurrentBag<string> files, bool verbose)
         {
             if (verbose) Console.WriteLine("Processing {0} files.", files.Count);
             var edges = new ConcurrentBag<EquatableEdge<AssemblyVertex>>();
@@ -44,6 +44,12 @@ namespace ReferenceChecker
                         if (verbose) Console.WriteLine("Skipping file as it does not appear to be a .Net assembly: {0}", file);
                         return;
                     }
+                    //We need to load the assembly to ensure that the assembly name is the same as the file name (to be exact)
+                    if (ignoring.Any(i => i.IsMatch(assembly.Name.Name.ToLowerInvariant())))
+                    {
+                        if (verbose) Console.WriteLine("Ignoring file: {0}", file);
+                        return;
+                    }
                     foreach (var reference in assembly.MainModule.AssemblyReferences)
                     {
                         var exists = files.Any(f =>
@@ -56,7 +62,10 @@ namespace ReferenceChecker
                             exists = _gacResolver.AssemblyExists(reference.FullName);
                         }
                         var assemblyName = new AssemblyName(assembly.FullName);
-                        edges.Add(CreateNewEdge(reference, exists, assemblyName, exclusions));
+                        if (!ignoring.Any(i => i.IsMatch(reference.Name.ToLowerInvariant())))
+                            edges.Add(CreateNewEdge(reference, exists, assemblyName, exclusions));
+                        else
+                            if (verbose) Console.WriteLine("Ignoring: {0}",assemblyName.Name);
                     }
                 });
 

@@ -21,13 +21,16 @@ namespace ReferenceChecker
             var output = string.Empty;
 
             string exceptions = null;
+            var assembliesToIgnore = string.Empty;
+
             var options = new OptionSet()
                 {
                     {"d|directory=","The directory to check runtime dependencies for.", v => directory = v},
                     {"v|verbose", "Verbose logging",v => verbose = v != null},
                     {"h|?|help", "Show help.", v => help = v != null},
                     {"o|output=","File to output DGML graph of references to.", v => output = v},
-                    {"e|exceptions=", "A semi-colon delimited list of exclusiosn (accepts wildcards)",v => exceptions = v}
+                    {"e|exceptions=", "A semi-colon delimited list of exclusiosn (accepts wildcards)",v => exceptions = v},
+                    {"i|ignore=","List of wildards matching assemblies to ignore when graphing", v => assembliesToIgnore = v}
                 };
 
             var extra = options.Parse(args);
@@ -48,11 +51,12 @@ namespace ReferenceChecker
                 OutputHelpAndExit(options);
             }
 
-            var exclusions = GetExcludedWildcards(exceptions);
+            var exclusions = WildcardListFromString(exceptions);
+            var ignoreWildcards = WildcardListFromString(assembliesToIgnore);
             var files = new ConcurrentBag<string>(Directory.GetFiles(directory, "*.dll").Concat(Directory.GetFiles(directory, "*.exe")));
 
             var grapher = new AssemblyReferenceGrapher(new FileSystem(), new GacResolver());
-            var graph = grapher.GenerateAssemblyReferenceGraph(exclusions, files, verbose);
+            var graph = grapher.GenerateAssemblyReferenceGraph(exclusions, ignoreWildcards, files, verbose);
 
             var roots = graph.Vertices.Where(v => graph.InDegree(v) == 0).ToList();
             var missingButExcluded = graph.Vertices.Where(m => m.Excluded && !m.Exists);
@@ -85,7 +89,7 @@ namespace ReferenceChecker
             return returnCode;
         }
 
-        private static IEnumerable<Regex> GetExcludedWildcards(string exceptions)
+        private static IEnumerable<Regex> WildcardListFromString(string exceptions)
         {
             if (string.IsNullOrEmpty(exceptions))
                 return new List<Regex>();
