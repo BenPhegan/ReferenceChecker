@@ -23,7 +23,7 @@ namespace ReferenceChecker
             string exceptions = null;
             var assembliesToIgnore = string.Empty;
 
-            var options = new OptionSet()
+            var options = new OptionSet
                 {
                     {"d|directory=","The directory to check runtime dependencies for.", v => directory = v},
                     {"v|verbose", "Verbose logging",v => verbose = v != null},
@@ -83,7 +83,7 @@ namespace ReferenceChecker
             {
                 Console.WriteLine();
                 Console.WriteLine(heading);
-                assemblyVertices.ToList().ForEach(m => Console.WriteLine("\t" + m.AssemblyName));
+                assemblyVertices.OrderByDescending(a => a.AssemblyName.FullName).ToList().ForEach(m => Console.WriteLine("\t" + m.AssemblyName));
                 returnCode = assemblyVertices.Count();
             }
             return returnCode;
