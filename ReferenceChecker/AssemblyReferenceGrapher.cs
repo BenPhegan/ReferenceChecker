@@ -55,14 +55,8 @@ namespace ReferenceChecker
                     }
                     foreach (var reference in assembly.MainModule.AssemblyReferences)
                     {
-                        var foundFileMatch = files.Any(f =>
-                            {
-                                var fileInfo = new FileInfo(f);
-                                var nameMatch = reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""), StringComparison.OrdinalIgnoreCase);
-                                var tempAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(_fileSystem.File.ReadAllBytes(fileInfo.FullName)));
-                                var versionMatch = tempAssembly.Name.Version == reference.Version;
-                                return nameMatch && versionMatch;
-                            });
+                        var foundFileMatch = files.Any(f => CheckFileAndVersionMatch(f, reference));
+
                         if (!foundFileMatch)
                         {
                             foundFileMatch = _gacResolver.AssemblyExists(reference.FullName);
@@ -83,6 +77,15 @@ namespace ReferenceChecker
             graph.AddVertexRange(distinctVertices);
             graph.AddEdgeRange(edges);
             return graph;
+        }
+
+        private bool CheckFileAndVersionMatch(string filename, AssemblyNameReference reference)
+        {
+            var fileInfo = new FileInfo(filename);
+            var nameMatch = reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""), StringComparison.OrdinalIgnoreCase);
+            var tempAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(_fileSystem.File.ReadAllBytes(fileInfo.FullName)));
+            var versionMatch = tempAssembly.Name.Version == reference.Version;
+            return nameMatch && versionMatch;
         }
 
         private static EquatableEdge<AssemblyVertex> CreateNewEdge(AssemblyNameReference reference, bool exists, AssemblyName assemblyName, List<Regex> exclusions)
