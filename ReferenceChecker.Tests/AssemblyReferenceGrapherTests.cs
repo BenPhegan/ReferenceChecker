@@ -73,8 +73,8 @@ namespace ReferenceChecker.Tests
         {
             var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
                 {
-                    {@"c:\test.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"Blah", "1.0"}, {"System", "4.0.0.0"}}))},
-                    {@"c:\blah.dll", new MockFileData(CreateAssembly(version: "1.1", dependencies: new Dictionary<string, string> {{"System", "2.0.0.0"}}))}
+                    {@"c:\test.dll", new MockFileData(CreateAssembly(name: "Test", dependencies: new Dictionary<string, string> {{"Blah", "1.0.0.0"}, {"System", "4.0.0.0"}}))},
+                    {@"c:\blah.dll", new MockFileData(CreateAssembly(name: "Blah", version: "1.1.0.0", dependencies: new Dictionary<string, string> {{"System", "2.0.0.0"}}))}
                 });
 
             var gacResolver = Substitute.For<IGacResolver>();
@@ -83,7 +83,9 @@ namespace ReferenceChecker.Tests
             var grapher = new AssemblyReferenceGrapher(fileSystem, gacResolver);
 
             var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
-            Assert.AreEqual(4, graph.Vertices.Count());
+            Assert.AreEqual(5, graph.Vertices.Count());
+            var assembly = graph.Vertices.First(v => v.AssemblyName.Name.Equals("Blah") && v.AssemblyName.Version.ToString().Equals("1.0.0.0"));
+            Assert.AreEqual(false, assembly.Exists);
         }
         
         [Test]
@@ -126,7 +128,7 @@ namespace ReferenceChecker.Tests
             var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
                 {
                     {@"c:\test.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"Blah", "1.0"}, {"System", "4.0.0.0"}}))},
-                    {@"c:\test2.dll", new MockFileData(CreateAssembly(name: "Test2",dependencies: new Dictionary<string, string> {{"Blah2", "1.0"}, {"Other", "4.0.0.0"}}))},
+                    {@"c:\test2.dll", new MockFileData(CreateAssembly("Test2",dependencies: new Dictionary<string, string> {{"Blah2", "1.0"}, {"Other", "4.0.0.0"}}))},
                 });
 
             var gacResolver = Substitute.For<IGacResolver>();

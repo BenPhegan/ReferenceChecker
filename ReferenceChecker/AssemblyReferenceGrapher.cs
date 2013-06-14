@@ -29,6 +29,9 @@ namespace ReferenceChecker
         {
             if (verbose) Console.WriteLine("Processing {0} files.", files.Count);
             var edges = new ConcurrentBag<EquatableEdge<AssemblyVertex>>();
+            var ignoreList = ignoring.ToList();
+            var excludeList = exclusions.ToList();
+
             var current = 0;
             var total = files.Count;
             Parallel.ForEach(files, file =>
@@ -45,25 +48,28 @@ namespace ReferenceChecker
                         return;
                     }
                     //We need to load the assembly to ensure that the assembly name is the same as the file name (to be exact)
-                    if (ignoring.Any(i => i.IsMatch(assembly.Name.Name.ToLowerInvariant())))
+                    if (ignoreList.Any(i => i.IsMatch(assembly.Name.Name.ToLowerInvariant())))
                     {
                         if (verbose) Console.WriteLine("Ignoring file: {0}", file);
                         return;
                     }
                     foreach (var reference in assembly.MainModule.AssemblyReferences)
                     {
-                        var exists = files.Any(f =>
+                        var foundFileMatch = files.Any(f =>
                             {
                                 var fileInfo = new FileInfo(f);
-                                return reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""), StringComparison.OrdinalIgnoreCase);
+                                var nameMatch = reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""), StringComparison.OrdinalIgnoreCase);
+                                var tempAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(_fileSystem.File.ReadAllBytes(fileInfo.FullName)));
+                                var versionMatch = tempAssembly.Name.Version == reference.Version;
+                                return nameMatch && versionMatch;
                             });
-                        if (!exists)
+                        if (!foundFileMatch)
                         {
-                            exists = _gacResolver.AssemblyExists(reference.FullName);
+                            foundFileMatch = _gacResolver.AssemblyExists(reference.FullName);
                         }
                         var assemblyName = new AssemblyName(assembly.FullName);
-                        if (!ignoring.Any(i => i.IsMatch(reference.Name.ToLowerInvariant())))
-                            edges.Add(CreateNewEdge(reference, exists, assemblyName, exclusions));
+                        if (!ignoreList.Any(i => i.IsMatch(reference.Name.ToLowerInvariant())))
+                            edges.Add(CreateNewEdge(reference, foundFileMatch, assemblyName, excludeList));
                         else
                             if (verbose) Console.WriteLine("Ignoring: {0}",assemblyName.Name);
                     }
@@ -79,7 +85,7 @@ namespace ReferenceChecker
             return graph;
         }
 
-        private static EquatableEdge<AssemblyVertex> CreateNewEdge(AssemblyNameReference reference, bool exists, AssemblyName assemblyName, IEnumerable<Regex> exclusions)
+        private static EquatableEdge<AssemblyVertex> CreateNewEdge(AssemblyNameReference reference, bool exists, AssemblyName assemblyName, List<Regex> exclusions)
         {
             return new EquatableEdge<AssemblyVertex>(
                 new AssemblyVertex
