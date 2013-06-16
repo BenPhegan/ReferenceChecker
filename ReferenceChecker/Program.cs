@@ -19,15 +19,16 @@ namespace ReferenceChecker
             var verbose = false;
             var help = false;
             var output = string.Empty;
-
             var exceptions = string.Empty;
             var assembliesToIgnore = string.Empty;
             var expectedRoots = string.Empty;
+            var dontCheckAssemblyVersion = false;
 
             var options = new OptionSet
                 {
                     {"d|directory=","The directory to check runtime dependencies for.", v => directory = v},
                     {"v|verbose", "Verbose logging",v => verbose = v != null},
+                    {"n|noassemblyversioncheck", "Don't check the assembly version when checking existence.",v => dontCheckAssemblyVersion = v != null},
                     {"h|?|help", "Show help.", v => help = v != null},
                     {"o|output=","File to output DGML graph of references to.", v => output = v},
                     {"e|exceptions=", "A semi-colon delimited list of exclusions (accepts wildcards)",v => exceptions = v},
@@ -60,7 +61,7 @@ namespace ReferenceChecker
             var files = new ConcurrentBag<string>(Directory.GetFiles(directory, "*.dll").Concat(Directory.GetFiles(directory, "*.exe")));
 
             var grapher = new AssemblyReferenceGrapher(new FileSystem(), new GacResolver());
-            var graph = grapher.GenerateAssemblyReferenceGraph(exclusions, ignoreWildcards, files, verbose);
+            var graph = grapher.GenerateAssemblyReferenceGraph(exclusions, ignoreWildcards, files, verbose, !dontCheckAssemblyVersion);
 
             var roots = graph.Vertices.Where(v => graph.InDegree(v) == 0).ToList();
             var missingButExcluded = graph.Vertices.Where(m => m.Excluded && !m.Exists);

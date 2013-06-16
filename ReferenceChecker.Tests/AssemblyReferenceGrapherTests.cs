@@ -68,8 +68,9 @@ namespace ReferenceChecker.Tests
             Assert.AreEqual(4, graph.Vertices.Count());
         }
 
-        [Test]
-        public void CanDetectIncorrectVersion()
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        public void CanDetectIncorrectVersion(bool checkAssemblyVersion, bool assemblyExists)
         {
             var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
                 {
@@ -82,10 +83,10 @@ namespace ReferenceChecker.Tests
             gacResolver.AssemblyExists(Arg.Any<String>(), out output).Returns(true);
             var grapher = new AssemblyReferenceGrapher(fileSystem, gacResolver);
 
-            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
+            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false, checkAssemblyVersion);
             Assert.AreEqual(5, graph.Vertices.Count());
             var assembly = graph.Vertices.First(v => v.AssemblyName.Name.Equals("Blah") && v.AssemblyName.Version.ToString().Equals("1.0.0.0"));
-            Assert.AreEqual(false, assembly.Exists);
+            Assert.AreEqual(assemblyExists, assembly.Exists);
         }
         
         [Test]

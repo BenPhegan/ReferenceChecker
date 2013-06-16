@@ -25,7 +25,7 @@ namespace ReferenceChecker
             _fileSystem = fileSystem;
             _gacResolver = gacResolver;
         }
-        public BidirectionalGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>> GenerateAssemblyReferenceGraph(IEnumerable<Regex> exclusions, IEnumerable<Regex> ignoring, ConcurrentBag<string> files, bool verbose)
+        public BidirectionalGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>> GenerateAssemblyReferenceGraph(IEnumerable<Regex> exclusions, IEnumerable<Regex> ignoring, ConcurrentBag<string> files, bool verbose, bool checkAssemblyVersionMatch = true)
         {
             if (verbose) Console.WriteLine("Processing {0} files.", files.Count);
             var edges = new ConcurrentBag<EquatableEdge<AssemblyVertex>>();
@@ -55,7 +55,7 @@ namespace ReferenceChecker
                     }
                     foreach (var reference in assembly.MainModule.AssemblyReferences)
                     {
-                        var foundFileMatch = files.Any(f => CheckFileAndVersionMatch(f, reference));
+                        var foundFileMatch = files.Any(f => CheckFileAndVersionMatch(f, reference, checkAssemblyVersionMatch));
 
                         if (!foundFileMatch)
                         {
@@ -79,13 +79,17 @@ namespace ReferenceChecker
             return graph;
         }
 
-        private bool CheckFileAndVersionMatch(string filename, AssemblyNameReference reference)
+        private bool CheckFileAndVersionMatch(string filename, AssemblyNameReference reference, bool checkAssemblyVersionMatch)
         {
             var fileInfo = new FileInfo(filename);
             var nameMatch = reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""), StringComparison.OrdinalIgnoreCase);
-            var tempAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(_fileSystem.File.ReadAllBytes(fileInfo.FullName)));
-            var versionMatch = tempAssembly.Name.Version == reference.Version;
-            return nameMatch && versionMatch;
+            if (checkAssemblyVersionMatch)
+            {
+                var tempAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(_fileSystem.File.ReadAllBytes(fileInfo.FullName)));
+                var versionMatch = tempAssembly.Name.Version == reference.Version;
+                return nameMatch && versionMatch;
+            }
+            return nameMatch;
         }
 
         private static EquatableEdge<AssemblyVertex> CreateNewEdge(AssemblyNameReference reference, bool exists, AssemblyName assemblyName, List<Regex> exclusions)
