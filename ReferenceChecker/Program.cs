@@ -56,7 +56,7 @@ namespace ReferenceChecker
 
             var exclusions = WildcardListFromString(exceptions);
             var ignoreWildcards = WildcardListFromString(assembliesToIgnore);
-            var rootsList = expectedRoots.Split(';').ToList();
+            var rootsList = expectedRoots.Split(';').Where(r => !string.IsNullOrEmpty(r)).ToList();
 
             var files = new ConcurrentBag<string>(Directory.GetFiles(directory, "*.dll").Concat(Directory.GetFiles(directory, "*.exe")));
 
