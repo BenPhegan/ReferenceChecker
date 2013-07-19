@@ -139,10 +139,32 @@ namespace ReferenceChecker.Tests
             var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), ignore, new ConcurrentBag<string>(fileSystem.AllPaths), false);
             Assert.AreEqual(3, graph.Vertices.Count());
         }
+
+        [TestCase(false, false, 2, 0)]
+        [TestCase(false, true, 3, 1)]
+        [TestCase(true, false, 3, 1)]
+        [TestCase(true, true, 2, 0)]
+        public void CanDetectIncorrectCorFlags(bool sourceIs64Bit, bool dependencyIs64Bit, int vertexCount, int missingCount)
+        {
+            var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+                {
+                    {@"c:\test.dll", new MockFileData(CreateAssembly(dependencies: new Dictionary<string, string> {{"Blah", "1.0"}}, sixtyfourbit: sourceIs64Bit))},
+                    {@"c:\blah.dll", new MockFileData(CreateAssembly("Blah",sixtyfourbit: dependencyIs64Bit))},
+                });
+
+            var gacResolver = Substitute.For<IGacResolver>();
+            gacResolver.AssemblyExists(Arg.Any<String>()).Returns(false);
+            var grapher = new AssemblyReferenceGrapher(fileSystem, gacResolver);
+            var graph = grapher.GenerateAssemblyReferenceGraph(new List<Regex>(), new List<Regex>(), new ConcurrentBag<string>(fileSystem.AllPaths), false);
+            Assert.AreEqual(vertexCount, graph.Vertices.Count());
+            var missing = graph.Vertices.Where(v => !v.Exists);
+            Assert.AreEqual(missingCount, missing.Count());
+        }
         
-        private static byte[] CreateAssembly(string name = "Test", string moduleName = "Test", string version = "1.0", Dictionary<string, string> dependencies = null)
+        private static byte[] CreateAssembly(string name = "Test", string moduleName = "Test", string version = "1.0", Dictionary<string, string> dependencies = null, bool sixtyfourbit = false)
         {
             var assembly = AssemblyDefinition.CreateAssembly(new AssemblyNameDefinition(name, new Version(version)), moduleName, ModuleKind.Dll);
+            assembly.MainModule.Attributes = sixtyfourbit ? ModuleAttributes.ILOnly : ModuleAttributes.ILOnly | ModuleAttributes.Required32Bit;
             if (dependencies != null)
             {
                 foreach (var dependency in dependencies)

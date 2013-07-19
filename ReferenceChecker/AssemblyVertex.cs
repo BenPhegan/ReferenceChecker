@@ -7,7 +7,7 @@ namespace ReferenceChecker
     {
         protected bool Equals(AssemblyVertex other)
         {
-            return Equals(AssemblyName.FullName, other.AssemblyName.FullName) && Exists.Equals(other.Exists) && Excluded.Equals(other.Excluded);
+            return Equals(AssemblyName.FullName, other.AssemblyName.FullName) && Exists.Equals(other.Exists) && Excluded.Equals(other.Excluded) && Required32Bit.Equals(other.Required32Bit);
         }
 
         public override int GetHashCode()
@@ -18,12 +18,13 @@ namespace ReferenceChecker
                 hashCode = hashCode ^ AssemblyName.FullName.GetHashCode();
             }
 
-            return hashCode ^ Exists.GetHashCode() ^ Excluded.GetHashCode();
+            return hashCode ^ Exists.GetHashCode() ^ Excluded.GetHashCode() ^ Required32Bit.GetHashCode();
         }
 
         public AssemblyName AssemblyName;
         public Boolean Exists;
         public Boolean Excluded;
+        public Boolean Required32Bit; 
 
         public override bool Equals(object obj)
         {

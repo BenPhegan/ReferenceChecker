@@ -29,6 +29,7 @@ namespace ReferenceChecker
         {
             if (verbose) Console.WriteLine("Processing {0} files.", files.Count);
             var edges = new ConcurrentBag<EquatableEdge<AssemblyVertex>>();
+            var vertices = new List<AssemblyVertex>();
             var ignoreList = ignoring.ToList();
             var excludeList = exclusions.ToList();
 
@@ -53,17 +54,29 @@ namespace ReferenceChecker
                         if (verbose) Console.WriteLine("Ignoring file: {0}", file);
                         return;
                     }
+
+                    //Check for 32bitness on our source assembly
+                    var required32Bit = Required32BitSet(assembly);
+                    var assemblyName = new AssemblyName(assembly.FullName);
+ 
+                    //If we dont have references (I know, unlikely right?)
+                    if (!assembly.MainModule.AssemblyReferences.Any())
+                    {
+                        vertices.Add(CreateAssemblyVertex(assemblyName.FullName, assemblyName.Name, true, Required32BitSet(assembly), excludeList));
+                        return;
+                    }
+
+                    //Otherwise create edges for them...
                     foreach (var reference in assembly.MainModule.AssemblyReferences)
                     {
-                        var foundFileMatch = files.Any(f => CheckFileAndVersionMatch(f, reference, checkAssemblyVersionMatch));
+                        var foundFileMatch = files.Any(f => CheckDependentFileMatchesManifest(f, reference, checkAssemblyVersionMatch, required32Bit));
 
                         if (!foundFileMatch)
                         {
                             foundFileMatch = _gacResolver.AssemblyExists(reference.FullName);
                         }
-                        var assemblyName = new AssemblyName(assembly.FullName);
                         if (!ignoreList.Any(i => i.IsMatch(reference.Name.ToLowerInvariant())))
-                            edges.Add(CreateNewEdge(reference, foundFileMatch, assemblyName, excludeList));
+                            edges.Add(CreateNewEdge(reference, foundFileMatch, required32Bit, assemblyName, excludeList));
                         else
                             if (verbose) Console.WriteLine("Ignoring: {0}",assemblyName.Name);
                     }
@@ -72,41 +85,49 @@ namespace ReferenceChecker
             if (verbose) Console.WriteLine();
             if (verbose) Console.WriteLine("Creating Graph...");
             var graph = new BidirectionalGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>>();
-            var allVertices = edges.Select(e => e.Source).Concat(edges.Select(e => e.Target));
+            var allVertices = edges.Select(e => e.Source).Concat(edges.Select(e => e.Target)).Concat(vertices);
             var distinctVertices = allVertices.Distinct();
             graph.AddVertexRange(distinctVertices);
             graph.AddEdgeRange(edges);
             return graph;
         }
 
-        private bool CheckFileAndVersionMatch(string filename, AssemblyNameReference reference, bool checkAssemblyVersionMatch)
+        private static bool Required32BitSet(AssemblyDefinition assembly)
+        {
+            return assembly.Modules.Any(m => m.Attributes.HasFlag(ModuleAttributes.Required32Bit));
+        }
+
+        private bool CheckDependentFileMatchesManifest(string filename, AssemblyNameReference reference, bool checkAssemblyVersionMatch, bool sourceRequires32Bit)
         {
             var fileInfo = new FileInfo(filename);
             var nameMatch = reference.Name.Equals(fileInfo.Name.Replace(fileInfo.Extension, ""), StringComparison.OrdinalIgnoreCase);
+            var tempAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(_fileSystem.File.ReadAllBytes(fileInfo.FullName)));
+            var dependencyIs32Bit = Required32BitSet(tempAssembly);
+            var bitnessMatches = (sourceRequires32Bit && dependencyIs32Bit) || (!sourceRequires32Bit && !dependencyIs32Bit);
             if (checkAssemblyVersionMatch)
             {
-                var tempAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(_fileSystem.File.ReadAllBytes(fileInfo.FullName)));
                 var versionMatch = tempAssembly.Name.Version == reference.Version;
-                return nameMatch && versionMatch;
+                return nameMatch && versionMatch && bitnessMatches;
             }
-            return nameMatch;
+            return nameMatch && bitnessMatches;
         }
 
-        private static EquatableEdge<AssemblyVertex> CreateNewEdge(AssemblyNameReference reference, bool exists, AssemblyName assemblyName, List<Regex> exclusions)
+        private static EquatableEdge<AssemblyVertex> CreateNewEdge(AssemblyNameReference reference, bool exists, bool required32Bit, AssemblyName assemblyName, List<Regex> exclusions)
         {
             return new EquatableEdge<AssemblyVertex>(
-                new AssemblyVertex
-                    {
-                        AssemblyName = new AssemblyName(assemblyName.FullName),
-                        Exists = true,
-                        Excluded = exclusions.Any(e => e.IsMatch(assemblyName.Name.ToLowerInvariant()))
-                    }, 
-                new AssemblyVertex
-                    {
-                        AssemblyName = new AssemblyName(reference.FullName),
-                        Exists = exists,
-                        Excluded = exclusions.Any(e => e.IsMatch(reference.Name.ToLowerInvariant()))
-                    });
+                CreateAssemblyVertex(assemblyName.FullName, assemblyName.Name, true, required32Bit, exclusions),
+                CreateAssemblyVertex(reference.FullName, reference.Name, exists, required32Bit, exclusions));
+        }
+
+        private static AssemblyVertex CreateAssemblyVertex(string assemblyFullName, string assemblyName, bool exists, bool required32Bit, IEnumerable<Regex> exclusions)
+        {
+            return new AssemblyVertex
+                {
+                    AssemblyName = new AssemblyName(assemblyFullName),
+                    Exists = exists,
+                    Excluded = exclusions.Any(e => e.IsMatch(assemblyName.ToLowerInvariant())),
+                    Required32Bit = required32Bit
+                };
         }
 
         public static void OutputToDgml(string output, IVertexAndEdgeListGraph<AssemblyVertex, EquatableEdge<AssemblyVertex>> graph)
